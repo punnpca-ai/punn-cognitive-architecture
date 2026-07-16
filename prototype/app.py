@@ -1,4 +1,5 @@
 from config import APP_NAME, VERSION
+from orchestrator import Orchestrator
 
 
 def main():
@@ -6,8 +7,12 @@ def main():
     print(APP_NAME)
     print(f"Version: {VERSION}")
     print("=" * 40)
-    print("PUNN Cognitive Architecture Prototype")
-    print("Status: Running")
+
+    orchestrator = Orchestrator()
+    orchestrator.start()
+
+    print("=" * 40)
+    print("Prototype Ready")
     print("=" * 40)
 
 
