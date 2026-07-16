@@ -1,5 +1,5 @@
-from config import APP_NAME, VERSION
-from orchestrator import Orchestrator
+from .config import APP_NAME, VERSION
+from .orchestrator import Orchestrator
 
 
 def main():

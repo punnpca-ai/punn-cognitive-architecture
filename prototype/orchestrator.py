@@ -1,6 +1,6 @@
-from core.state import CognitiveState
-from core.purpose import PurposeEngine
-from llm.ollama import OllamaClient
+from .core.state import CognitiveState
+from .core.purpose import PurposeEngine
+from .llm.ollama import OllamaClient
 
 
 class Orchestrator:
