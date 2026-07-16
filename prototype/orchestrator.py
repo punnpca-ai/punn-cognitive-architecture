@@ -1,3 +1,4 @@
 class Orchestrator:
-    pass
 
+    def start(self):
+        print("Orchestrator initialized.")
