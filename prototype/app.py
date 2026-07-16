@@ -17,13 +17,17 @@ def main():
 
     question = input("You: ")
 
-    answer = orchestrator.think(question)
+    state = orchestrator.think(question)
 
     print()
 
-    print("PCA:")
+    print("Purpose")
+    print(state.purpose)
 
-    print(answer)
+    print()
+
+    print("PCA")
+    print(state.response)
 
     print()
 
