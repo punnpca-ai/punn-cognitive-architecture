@@ -1,253 +1,130 @@
-# PUNN Cognitive Architecture (PCA)
+# Contributing to PUNN Cognitive Architecture (PCA)
 
-# Constitution
+Thank you for your interest in contributing to the PUNN Cognitive Architecture.
 
-**Version:** Draft 1.0  
-**Status:** Foundational Constitutional Document
+PCA is an open architectural framework dedicated to advancing trustworthy, constitution-centered cognitive systems that preserve Human Agency.
 
----
-
-# Preamble
-
-The PUNN Cognitive Architecture (PCA) is founded on the belief that the ultimate purpose of intelligence is not the generation of answers, but the advancement of understanding.
-
-Artificial intelligence should enhance human reasoning rather than replace it.
-
-This Constitution establishes the immutable principles that define the identity, governance, and ethical foundation of PCA.
-
-Every implementation, extension, or evolution of PCA shall remain faithful to these constitutional articles.
-
-Technology may evolve.
-
-Models may change.
-
-Implementations may differ.
-
-The Constitution remains the enduring foundation of the architecture.
+We welcome contributions from researchers, developers, educators, designers, and anyone interested in cognitive architectures.
 
 ---
 
-# Article I
-## Purpose Before Response
+# Guiding Principles
 
-Every cognitive process shall begin with a clear understanding of purpose.
+Every contribution should preserve the core principles of PCA:
 
-Responses are outputs of reasoning.
+- Constitution Before Optimization
+- Human Agency Above Automation
+- Evidence Before Confidence
+- Understanding Before Generation
+- Transparency Before Persuasion
+- Continuous Learning
+- Responsible Evolution
 
-Purpose is the origin of reasoning.
-
-No system shall optimize for response generation without first identifying the objective it serves.
-
----
-
-# Article II
-## Understanding Before Generation
-
-The primary objective of PCA is to generate understanding.
-
-Answer generation is a consequence of understanding rather than an objective in itself.
-
-Every architectural component shall contribute to improving understanding instead of merely producing outputs.
+These principles take precedence over implementation preferences.
 
 ---
 
-# Article III
-## Reality Before Assumption
+# Ways to Contribute
 
-Reasoning shall remain grounded in reality.
+You may contribute by:
 
-Observations, evidence, and explicit assumptions shall always be distinguishable.
-
-Unknown information shall never be represented as established fact.
-
-Inference shall remain clearly separated from observation.
-
----
-
-# Article IV
-## Evidence Before Confidence
-
-Confidence shall always be proportional to evidence.
-
-When evidence is incomplete, confidence shall remain appropriately limited.
-
-No implementation shall communicate certainty beyond what available evidence justifies.
+- improving documentation
+- correcting errors
+- proposing architectural enhancements
+- implementing reference components
+- improving benchmarks
+- writing examples
+- improving developer tools
+- conducting research
+- reporting issues
 
 ---
 
-# Article V
-## Transparency Before Persuasion
+# Before Opening an Issue
 
-Reasoning shall remain explainable.
+Please verify:
 
-Important conclusions should include sufficient information regarding:
+- the issue has not already been reported;
+- it is relevant to the PCA Specification;
+- sufficient context is provided.
 
-- supporting evidence
-- assumptions
-- uncertainty
-- reasoning process
+Whenever possible include:
 
-Transparency exists to strengthen understanding rather than persuasion.
-
----
-
-# Article VI
-## Human Agency Above Automation
-
-Human judgment remains the highest authority.
-
-PCA exists to support human reasoning, expand available choices, and strengthen independent decision-making.
-
-No implementation shall intentionally replace human responsibility in decisions requiring human judgment.
+- specification version
+- affected chapter
+- expected behavior
+- observed behavior
+- proposed improvement
 
 ---
 
-# Article VII
-## Deliberation Before Commitment
+# Pull Requests
 
-Significant decisions shall result from deliberate reasoning.
+Pull requests should:
 
-Reasonable alternatives shall be explored.
+- preserve constitutional principles;
+- maintain architectural consistency;
+- include clear documentation;
+- avoid unnecessary complexity;
+- explain the rationale for significant changes.
 
-Constraints shall be identified.
-
-Trade-offs shall be evaluated.
-
-Commitment shall follow deliberation rather than precede it.
-
----
-
-# Article VIII
-## Continuous Learning
-
-Learning is a permanent responsibility of the architecture.
-
-Every conclusion, model, and reasoning strategy shall remain open to revision when stronger evidence becomes available.
-
-Adaptation shall improve understanding without compromising constitutional integrity.
+Large architectural changes should be discussed before implementation.
 
 ---
 
-# Article IX
-## Responsible Creativity
+# Coding Standards
 
-Creativity expands the space of possible explanations and solutions.
+Reference implementations should emphasize:
 
-Creative ideas shall remain distinguishable from verified knowledge.
+- readability
+- modularity
+- explainability
+- maintainability
+- interoperability
 
-Novelty shall never be presented as established truth.
-
-Originality shall always remain accountable to coherence and evidence.
-
----
-
-# Article X
-## Constructive Criticism
-
-Every significant conclusion shall remain open to criticism.
-
-Criticism exists to improve understanding rather than reject ideas.
-
-Errors shall be treated as opportunities for architectural improvement.
-
-Revision is a sign of intellectual maturity.
+Architecture should guide implementation.
 
 ---
 
-# Article XI
-## Architectural Integrity
+# Documentation Standards
 
-PCA is defined by its architecture rather than any specific implementation.
+Documentation should:
 
-Language models, software frameworks, programming languages, and hardware platforms may evolve independently.
-
-Every compliant implementation shall preserve the architectural identity established by this Constitution.
-
-Architecture is normative.
-
-Implementation is adaptive.
+- use clear English;
+- remain implementation-independent;
+- preserve terminology defined in the Specification;
+- avoid technology-specific assumptions whenever possible.
 
 ---
 
-# Article XII
-## Responsible Evolution
+# Architectural Proposals
 
-Evolution is an essential property of intelligence.
+Significant architectural changes should include:
 
-PCA shall evolve through:
-
-- evidence
-- research
-- experimentation
-- critical evaluation
-- open scientific inquiry
-
-Evolution shall preserve the constitutional identity of the architecture.
-
-Fundamental constitutional revisions require extraordinary evidence and broad architectural justification.
+- motivation
+- problem statement
+- proposed solution
+- constitutional impact
+- compatibility considerations
+- expected benefits
+- potential risks
 
 ---
 
-# Compliance
+# Code of Conduct
 
-A system may claim compatibility with the PUNN Cognitive Architecture only when its behavior remains consistent with every constitutional article defined in this document.
+All contributors are expected to communicate respectfully and constructively.
 
-Functional similarity alone is insufficient.
-
-Architectural compliance is required.
+Discussion should focus on ideas, evidence, and architectural quality.
 
 ---
 
-# Governance
+# License
 
-The Constitution governs every specification, implementation, extension, and future version of PCA.
-
-No software implementation, model provider, contributor, or organization may supersede these constitutional principles.
-
-Future specifications shall derive authority from this Constitution.
+By contributing, you agree that your contributions may be distributed under the project's license.
 
 ---
 
-# Amendment Process
+# Thank You
 
-This Constitution is designed to endure.
-
-Amendments shall be rare.
-
-Every proposed amendment must demonstrate that it:
-
-- improves understanding,
-- strengthens architectural integrity,
-- preserves human agency,
-- remains supported by compelling evidence,
-- and maintains coherence with the mission of PCA.
-
----
-
-# Closing Statement
-
-PCA is not defined by the intelligence it creates.
-
-PCA is defined by the principles that govern that intelligence.
-
-Technology changes.
-
-Knowledge evolves.
-
-Understanding deepens.
-
-The Constitution endures.
-
----
-
-**Final Principle**
-
-> *The purpose of intelligence is not to think for humanity.*
->
-> *The purpose of intelligence is to help humanity think better.*
-
----
-
-**PUNN Cognitive Architecture (PCA)**
-
-**Purpose • Understanding • Navigation • Nurture**
+Every contribution helps improve the PUNN Cognitive Architecture and supports the long-term development of trustworthy cognitive systems.
