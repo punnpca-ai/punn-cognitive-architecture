@@ -1,0 +1,6 @@
+# API layer dependencies (Step 1: FastAPI)
+# Install: pip install -r requirements-api.txt
+-r prototype/requirements.txt
+fastapi
+uvicorn
+pydantic
