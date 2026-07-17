@@ -7,7 +7,7 @@ from .core.governance import Firekeeper
 from .core.memory import MemoryEngine, MemoryItem, MemoryLayer
 from .core.purpose import PurposeEngine
 from .core.state import CognitiveState
-from .llm.ollama import OllamaClient, OllamaUnavailable
+from .llm import BaseLLMAdapter, OllamaAdapter, OllamaUnavailable
 
 
 _THAI_SCRIPT = re.compile(r"[\u0E00-\u0E7F]")
@@ -29,17 +29,17 @@ class Orchestrator:
     def __init__(
         self,
         memory: MemoryEngine | None = None,
-        llm: OllamaClient | None = None,
+        llm: BaseLLMAdapter | None = None,
         use_llm: bool = True,
     ) -> None:
         self.memory = memory or MemoryEngine()
         self.purpose_engine = PurposeEngine()
         self.firekeeper = Firekeeper()
-        self.llm = llm or OllamaClient()
+        self.llm = llm or OllamaAdapter()
         self.use_llm = use_llm
 
     def start(self) -> None:
-        mode = f"Ollama model: {self.llm.model}" if self.use_llm else "deterministic fallback"
+        mode = f"LLM model: {self.llm.model} ({self.llm.__class__.__name__})" if self.use_llm else "deterministic fallback"
         print(f"PCA Cognitive DNA prototype initialized ({mode}).")
 
     def think(self, user_input: str) -> CognitiveState:
@@ -181,8 +181,8 @@ class Orchestrator:
         source = "deterministic_fallback"
         if self.use_llm:
             try:
-                state.response = self.llm.chat(self._communication_prompt(state))
-                source = "ollama"
+                state.response = self.llm.generate(self._communication_prompt(state))
+                source = self.llm.__class__.__name__.replace('Adapter', '').lower()
             except OllamaUnavailable as exc:
                 state.notes.append(str(exc))
         if not state.response:
