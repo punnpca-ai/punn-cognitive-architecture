@@ -1,0 +1,355 @@
+diff --git a/prototype/core/governance.py b/prototype/core/governance.py
+index 4bd62e2..5282346 100644
+--- a/prototype/core/governance.py
++++ b/prototype/core/governance.py
+@@ -2,6 +2,21 @@
+ 
+ from .state import CognitiveState
+ 
++# Phrases that assert the decision for the user rather than support their own
++# judgment. If the decision text uses this kind of coercive language, Firekeeper
++# flags it instead of letting it pass silently.
++COERCIVE_PHRASES = (
++    "you must",
++    "you have to",
++    "you need to",
++    "the only option",
++    "there is no other way",
++)
++
++# Above this confidence, a claim needs corroborating memory to be trustworthy;
++# without it, the number is unearned and should be flagged, not just displayed.
++UNSUPPORTED_CONFIDENCE_THRESHOLD = 0.6
++
+ 
+ class Firekeeper:
+     """Checks that the system informs rather than replaces human judgment."""
+@@ -9,7 +24,24 @@ class Firekeeper:
+     def review(self, state: CognitiveState) -> None:
+         state.agency_checks.append("Human decision authority is retained; this is a recommendation.")
+         state.agency_checks.append("Alternatives and remaining uncertainty are communicated.")
++
+         if not state.uncertainty:
+             state.uncertainty.append("No external evidence has been independently verified.")
++
+         if not state.hypotheses:
+-            state.critique.append("No alternatives were generated; do not treat this as a final decision.")
+\ No newline at end of file
++            state.critique.append("No alternatives were generated; do not treat this as a final decision.")
++
++        decision_text = state.decision.lower()
++        if any(phrase in decision_text for phrase in COERCIVE_PHRASES):
++            state.critique.append(
++                "Decision language asserts the choice rather than framing it as a recommendation; "
++                "human agency may be undermined."
++            )
++            state.agency_checks.append("Coercive phrasing detected in decision text; flagged for review.")
++
++        if state.confidence > UNSUPPORTED_CONFIDENCE_THRESHOLD and not state.memories:
++            state.critique.append(
++                f"Confidence ({state.confidence:.0%}) exceeds what unsupported evidence justifies; "
++                "no corroborating memory was retrieved."
++            )
++            state.agency_checks.append("Confidence claim exceeds supporting evidence; flagged for review.")
+\ No newline at end of file
+diff --git a/prototype/core/purpose.py b/prototype/core/purpose.py
+index 30f48f7..6568578 100644
+--- a/prototype/core/purpose.py
++++ b/prototype/core/purpose.py
+@@ -3,18 +3,32 @@
+ from .state import CognitiveState
+ 
+ 
++DEFAULT_CONSTRAINTS = [
++    "Do not replace human judgment.",
++    "State uncertainty explicitly.",
++    "Prefer evidence over assumption.",
++]
++
++
+ class PurposeEngine:
+     """Establish a transparent, human-centred purpose before generation."""
+ 
+     def process(self, state: CognitiveState) -> CognitiveState:
+-        """Record the purpose for the current request and return its state."""
++        """Record the purpose and constraints for the current request."""
+         request = state.user_input.strip()
+-        if request:
+-            state.purpose = (
+-                "Help the user understand and make an informed decision about: "
+-                f"{request}"
+-            )
++        if state.language == "th":
++            if request:
++                state.purpose = f"ช่วยให้ผู้ใช้เข้าใจและตัดสินใจได้เอง (human-owned decision) เกี่ยวกับ: {request}"
++            else:
++                state.purpose = "ขอให้ผู้ใช้ระบุคำถามก่อนที่จะสร้างคำตอบ"
+         else:
+-            state.purpose = "Ask the user for a question before generating a response."
++            if request:
++                state.purpose = (
++                    "Help the user understand and make an informed, human-owned decision about: "
++                    f"{request}"
++                )
++            else:
++                state.purpose = "Ask the user for a question before generating a response."
+ 
++        state.constraints = list(DEFAULT_CONSTRAINTS)
+         return state
+\ No newline at end of file
+diff --git a/prototype/core/state.py b/prototype/core/state.py
+index 52f92d6..0c4b7f8 100644
+--- a/prototype/core/state.py
++++ b/prototype/core/state.py
+@@ -12,6 +12,7 @@ class CognitiveState:
+     """Inspectable state shared by every cognitive stage."""
+ 
+     user_input: str
++    language: str = "en"
+     purpose: str = ""
+     response: str = ""
+     notes: list[str] = field(default_factory=list)
+diff --git a/prototype/orchestrator.py b/prototype/orchestrator.py
+index dc9e327..8e9bdc2 100644
+--- a/prototype/orchestrator.py
++++ b/prototype/orchestrator.py
+@@ -5,10 +5,24 @@ import re
+ from .core.cognitive_dna import COGNITIVE_DNA, CognitiveStage
+ from .core.governance import Firekeeper
+ from .core.memory import MemoryEngine, MemoryItem, MemoryLayer
++from .core.purpose import PurposeEngine
+ from .core.state import CognitiveState
+ from .llm.ollama import OllamaClient, OllamaUnavailable
+ 
+ 
++_THAI_SCRIPT = re.compile(r"[\u0E00-\u0E7F]")
++
++
++def _detect_language(text: str) -> str:
++    """Very small heuristic: Thai script present -> 'th', otherwise 'en'.
++
++    This only decides which deterministic template to use when the LLM path is
++    unavailable; when Ollama responds it already handles the user's language
++    directly via the prompt instruction.
++    """
++    return "th" if _THAI_SCRIPT.search(text) else "en"
++
++
+ class Orchestrator:
+     """Coordinates the invariant Cognitive DNA sequence without hidden reasoning."""
+ 
+@@ -19,6 +33,7 @@ class Orchestrator:
+         use_llm: bool = True,
+     ) -> None:
+         self.memory = memory or MemoryEngine()
++        self.purpose_engine = PurposeEngine()
+         self.firekeeper = Firekeeper()
+         self.llm = llm or OllamaClient()
+         self.use_llm = use_llm
+@@ -49,24 +64,40 @@ class Orchestrator:
+         observation = state.user_input.strip()
+         if observation:
+             state.observations.append(observation)
++            state.language = _detect_language(observation)
+         else:
+             state.uncertainty.append("No request was provided.")
+         state.record(CognitiveStage.OBSERVATION, {"observations": state.observations, "uncertainty": state.uncertainty[:]})
+ 
+     def _understand(self, state: CognitiveState) -> None:
+-        state.understanding = "The user is seeking support to examine a request before acting."
+-        if not state.observations:
+-            state.understanding = "There is insufficient input to establish context."
++        if state.language == "th":
++            state.understanding = "ผู้ใช้ต้องการความช่วยเหลือในการพิจารณาคำขอก่อนตัดสินใจลงมือทำ"
++            if not state.observations:
++                state.understanding = "ข้อมูลที่ให้มาไม่เพียงพอต่อการทำความเข้าใจบริบท"
++        else:
++            state.understanding = "The user is seeking support to examine a request before acting."
++            if not state.observations:
++                state.understanding = "There is insufficient input to establish context."
+         state.record(CognitiveStage.UNDERSTANDING, {"understanding": state.understanding})
+ 
+     def _identify_purpose(self, state: CognitiveState) -> None:
+-        state.purpose = "Strengthen the user's understanding and support an informed, human-owned decision."
+-        state.constraints = ["Do not replace human judgment.", "State uncertainty explicitly.", "Prefer evidence over assumption."]
++        self.purpose_engine.process(state)
+         state.record(CognitiveStage.PURPOSE, {"purpose": state.purpose, "constraints": state.constraints})
+ 
+     def _retrieve_memory(self, state: CognitiveState) -> None:
+         retrieved = self.memory.retrieve(state.user_input)
+         state.memories = [item.as_dict() for item in retrieved]
++        if state.observations:
++            # Committed after retrieval so this turn's own observation cannot
++            # self-match and inflate "relevant prior memory" for this same cycle.
++            self.memory.remember(
++                MemoryItem(
++                    content=state.observations[0],
++                    layer=MemoryLayer.WORKING,
++                    source="user_input",
++                    confidence=1.0,
++                )
++            )
+         state.record(CognitiveStage.MEMORY, {"retrieved": state.memories})
+ 
+     def _build_mental_model(self, state: CognitiveState) -> None:
+@@ -82,8 +113,23 @@ class Orchestrator:
+         state.record(CognitiveStage.HYPOTHESIS, {"hypotheses": state.hypotheses})
+ 
+     def _evaluate_evidence(self, state: CognitiveState) -> None:
+-        evidence_count = len(state.observations) + len(state.memories)
+-        state.confidence = min(0.8, 0.25 + evidence_count * 0.15) if evidence_count else 0.0
++        """Derive confidence from two grounded components instead of a flat guess.
++
++        - `baseline` (0.3): awarded only when there is a concrete user observation,
++          so an empty request can never be reported as evidenced.
++        - `memory_component` (up to +0.5): the average reliability (`confidence`) of
++          any retrieved prior memories that actually matched this request, so
++          confidence tracks how trustworthy the supporting memory is, not just how
++          many items were found.
++        The total is capped at 0.8: this deterministic pipeline never claims
++        near-certainty, since Firekeeper still requires human confirmation.
++        """
++        baseline = 0.3 if state.observations else 0.0
++        if state.memories:
++            memory_component = sum(item["confidence"] for item in state.memories) / len(state.memories) * 0.5
++        else:
++            memory_component = 0.0
++        state.confidence = min(0.8, baseline + memory_component)
+         for hypothesis in state.hypotheses:
+             hypothesis["confidence"] = round(state.confidence, 2)
+         if not state.memories:
+@@ -97,16 +143,31 @@ class Orchestrator:
+         state.record(CognitiveStage.CRITIQUE, {"critique": state.critique[:]})
+ 
+     def _decide(self, state: CognitiveState) -> None:
+-        if not state.observations:
+-            state.decision = "Ask the user to provide a specific question or goal."
++        if state.language == "th":
++            if not state.observations:
++                state.decision = "ขอให้ผู้ใช้ระบุคำถามหรือเป้าหมายที่ชัดเจน"
++            else:
++                state.decision = "ทำความชัดเจนของผลลัพธ์ที่ต้องการ เปรียบเทียบทางเลือกที่มี แล้วให้ผู้ใช้เลือกขั้นตอนถัดไปเอง"
+         else:
+-            state.decision = "Clarify the desired outcome, compare available alternatives, and let the user choose the next action."
++            if not state.observations:
++                state.decision = "Ask the user to provide a specific question or goal."
++            else:
++                state.decision = "Clarify the desired outcome, compare available alternatives, and let the user choose the next action."
+         state.record(CognitiveStage.DECISION, {"decision": state.decision, "confidence": state.confidence, "uncertainty": state.uncertainty[:]})
+ 
+     def _communication_prompt(self, state: CognitiveState) -> str:
+         return f"""You are the Communication stage of the PUNN Cognitive Architecture (PCA).\nRespond in the user's language. Help them think; do not make their decision for them.\nSeparate observations from assumptions, state uncertainty, and offer practical options.\n\nUser request: {state.user_input}\nPurpose: {state.purpose}\nDecision framework: {state.decision}\nConfidence: {state.confidence:.0%}\nUncertainty: {'; '.join(state.uncertainty)}\nCritique: {'; '.join(state.critique)}\n\nGive a concise, helpful response."""
+ 
+     def _fallback_response(self, state: CognitiveState) -> str:
++        if state.language == "th":
++            return "\n".join([
++                f"ความเข้าใจ: {state.understanding}",
++                f"จุดประสงค์: {state.purpose}",
++                f"ข้อเสนอแนะ: {state.decision}",
++                f"ความมั่นใจ: {state.confidence:.0%}",
++                "ความไม่แน่นอน: " + "; ".join(state.uncertainty),
++                "อำนาจการตัดสินใจ: การตัดสินใจสุดท้ายยังคงเป็นของคุณ",
++            ])
+         return "\n".join([
+             f"Understanding: {state.understanding}",
+             f"Purpose: {state.purpose}",
+diff --git a/prototype/requirements.txt b/prototype/requirements.txt
+index 1276e7a..f229360 100644
+--- a/prototype/requirements.txt
++++ b/prototype/requirements.txt
+@@ -1,4 +1 @@
+-fastapi
+-uvicorn
+ requests
+-
+diff --git a/tests/test_prototype.py b/tests/test_prototype.py
+index 2948ec3..3808d6b 100644
+--- a/tests/test_prototype.py
++++ b/tests/test_prototype.py
+@@ -58,7 +58,11 @@ class CognitiveDnaTests(unittest.TestCase):
+         later = orchestrator.think("Research plan evidence")
+ 
+         self.assertTrue(later.memories)
+-        self.assertEqual("cognitive_dna_cycle", later.memories[0]["source"])
++        sources = {item["source"] for item in later.memories}
++        self.assertIn("cognitive_dna_cycle", sources)
++        layers = {item["layer"] for item in later.memories}
++        self.assertIn(MemoryLayer.REFLECTIVE.value, layers)
++        self.assertIn(MemoryLayer.WORKING.value, layers)
+ 
+     def test_memory_retains_provenance(self):
+         memory = MemoryEngine()
+@@ -69,6 +73,72 @@ class CognitiveDnaTests(unittest.TestCase):
+         self.assertEqual("test", result[0].source)
+         self.assertEqual(MemoryLayer.SEMANTIC, result[0].layer)
+ 
++    def test_purpose_stage_uses_purpose_engine_not_duplicated_logic(self):
++        state = Orchestrator(use_llm=False).think("Should I take the job offer?")
++
++        purpose_output = state.trace[2]["output"]
++        self.assertEqual("purpose", state.trace[2]["stage"])
++        self.assertIn("Should I take the job offer?", purpose_output["purpose"])
++        self.assertIn("human-owned decision", purpose_output["purpose"])
++        self.assertTrue(purpose_output["constraints"])
++
++    def test_current_observation_does_not_self_match_its_own_retrieval(self):
++        memory = MemoryEngine()
++        orchestrator = Orchestrator(memory=memory, use_llm=False)
++
++        state = orchestrator.think("Plan the research budget")
++
++        self.assertEqual([], state.memories)
++
++    def test_confidence_reflects_memory_reliability_not_a_flat_constant(self):
++        memory = MemoryEngine()
++        memory.remember(MemoryItem("budget plan evidence", MemoryLayer.SEMANTIC, "test", 0.9))
++        orchestrator = Orchestrator(memory=memory, use_llm=False)
++
++        state = orchestrator.think("budget plan evidence review")
++
++        # baseline (0.3, observation present) + 0.9 * 0.5 memory component = 0.75
++        self.assertAlmostEqual(state.confidence, 0.75, places=2)
++
++    def test_firekeeper_flags_coercive_decision_language(self):
++        orchestrator = Orchestrator(use_llm=False)
++        state = orchestrator.think("Plan a project")
++        state.decision = "You must do this immediately, there is no other way."
++
++        orchestrator.firekeeper.review(state)
++
++        self.assertTrue(any("Coercive phrasing" in note for note in state.agency_checks))
++
++    def test_firekeeper_flags_unsupported_high_confidence(self):
++        orchestrator = Orchestrator(use_llm=False)
++        state = orchestrator.think("Plan a project")
++        state.confidence = 0.9
++        state.memories = []
++
++        orchestrator.firekeeper.review(state)
++
++        self.assertTrue(any("exceeds what unsupported evidence justifies" in note for note in state.critique))
++
++    def test_thai_input_gets_thai_deterministic_fallback(self):
++        state = Orchestrator(use_llm=False).think("ควรตัดสินใจอย่างไรดี")
++
++        self.assertEqual("th", state.language)
++        self.assertIn("การตัดสินใจสุดท้ายยังคงเป็นของคุณ", state.response)
++
++    def test_english_input_still_gets_english_fallback(self):
++        state = Orchestrator(use_llm=False).think("How should I decide?")
++
++        self.assertEqual("en", state.language)
++        self.assertIn("You retain the final decision", state.response)
++
++    def test_requirements_only_lists_used_dependencies(self):
++        from pathlib import Path
++
++        requirements = Path(__file__).resolve().parents[1] / "prototype" / "requirements.txt"
++        content = requirements.read_text().split()
++
++        self.assertEqual(["requests"], content)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+\ No newline at end of file
