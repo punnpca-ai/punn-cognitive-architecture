@@ -1,30 +1,35 @@
+"""Ollama integration with bounded failures for the PCA prototype."""
+
 import requests
 
 
-class OllamaClient:
+class OllamaUnavailable(RuntimeError):
+    """Raised when a local Ollama model cannot provide a response."""
 
+
+class OllamaClient:
     def __init__(
         self,
         host: str = "http://localhost:11434",
         model: str = "qwen3:4b",
-    ):
-        self.host = host
+        timeout: float = 60.0,
+    ) -> None:
+        self.host = host.rstrip("/")
         self.model = model
+        self.timeout = timeout
 
     def chat(self, prompt: str) -> str:
+        try:
+            response = requests.post(
+                f"{self.host}/api/generate",
+                json={"model": self.model, "prompt": prompt, "stream": False},
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            content = response.json().get("response", "").strip()
+        except (requests.RequestException, ValueError) as exc:
+            raise OllamaUnavailable(f"Ollama is unavailable: {exc}") from exc
 
-        url = f"{self.host}/api/generate"
-
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
-        }
-
-        response = requests.post(url, json=payload)
-
-        response.raise_for_status()
-
-        data = response.json()
-
-        return data["response"]
+        if not content:
+            raise OllamaUnavailable("Ollama returned an empty response.")
+        return content
