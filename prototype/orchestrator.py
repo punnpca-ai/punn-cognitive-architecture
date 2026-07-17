@@ -5,8 +5,22 @@ import re
 from .core.cognitive_dna import COGNITIVE_DNA, CognitiveStage
 from .core.governance import Firekeeper
 from .core.memory import MemoryEngine, MemoryItem, MemoryLayer
+from .core.purpose import PurposeEngine
 from .core.state import CognitiveState
 from .llm.ollama import OllamaClient, OllamaUnavailable
+
+
+_THAI_SCRIPT = re.compile(r"[\u0E00-\u0E7F]")
+
+
+def _detect_language(text: str) -> str:
+    """Very small heuristic: Thai script present -> 'th', otherwise 'en'.
+
+    This only decides which deterministic template to use when the LLM path is
+    unavailable; when Ollama responds it already handles the user's language
+    directly via the prompt instruction.
+    """
+    return "th" if _THAI_SCRIPT.search(text) else "en"
 
 
 class Orchestrator:
@@ -19,6 +33,7 @@ class Orchestrator:
         use_llm: bool = True,
     ) -> None:
         self.memory = memory or MemoryEngine()
+        self.purpose_engine = PurposeEngine()
         self.firekeeper = Firekeeper()
         self.llm = llm or OllamaClient()
         self.use_llm = use_llm
@@ -49,24 +64,40 @@ class Orchestrator:
         observation = state.user_input.strip()
         if observation:
             state.observations.append(observation)
+            state.language = _detect_language(observation)
         else:
             state.uncertainty.append("No request was provided.")
         state.record(CognitiveStage.OBSERVATION, {"observations": state.observations, "uncertainty": state.uncertainty[:]})
 
     def _understand(self, state: CognitiveState) -> None:
-        state.understanding = "The user is seeking support to examine a request before acting."
-        if not state.observations:
-            state.understanding = "There is insufficient input to establish context."
+        if state.language == "th":
+            state.understanding = "ผู้ใช้ต้องการความช่วยเหลือในการพิจารณาคำขอก่อนตัดสินใจลงมือทำ"
+            if not state.observations:
+                state.understanding = "ข้อมูลที่ให้มาไม่เพียงพอต่อการทำความเข้าใจบริบท"
+        else:
+            state.understanding = "The user is seeking support to examine a request before acting."
+            if not state.observations:
+                state.understanding = "There is insufficient input to establish context."
         state.record(CognitiveStage.UNDERSTANDING, {"understanding": state.understanding})
 
     def _identify_purpose(self, state: CognitiveState) -> None:
-        state.purpose = "Strengthen the user's understanding and support an informed, human-owned decision."
-        state.constraints = ["Do not replace human judgment.", "State uncertainty explicitly.", "Prefer evidence over assumption."]
+        self.purpose_engine.process(state)
         state.record(CognitiveStage.PURPOSE, {"purpose": state.purpose, "constraints": state.constraints})
 
     def _retrieve_memory(self, state: CognitiveState) -> None:
         retrieved = self.memory.retrieve(state.user_input)
         state.memories = [item.as_dict() for item in retrieved]
+        if state.observations:
+            # Committed after retrieval so this turn's own observation cannot
+            # self-match and inflate "relevant prior memory" for this same cycle.
+            self.memory.remember(
+                MemoryItem(
+                    content=state.observations[0],
+                    layer=MemoryLayer.WORKING,
+                    source="user_input",
+                    confidence=1.0,
+                )
+            )
         state.record(CognitiveStage.MEMORY, {"retrieved": state.memories})
 
     def _build_mental_model(self, state: CognitiveState) -> None:
@@ -82,8 +113,23 @@ class Orchestrator:
         state.record(CognitiveStage.HYPOTHESIS, {"hypotheses": state.hypotheses})
 
     def _evaluate_evidence(self, state: CognitiveState) -> None:
-        evidence_count = len(state.observations) + len(state.memories)
-        state.confidence = min(0.8, 0.25 + evidence_count * 0.15) if evidence_count else 0.0
+        """Derive confidence from two grounded components instead of a flat guess.
+
+        - `baseline` (0.3): awarded only when there is a concrete user observation,
+          so an empty request can never be reported as evidenced.
+        - `memory_component` (up to +0.5): the average reliability (`confidence`) of
+          any retrieved prior memories that actually matched this request, so
+          confidence tracks how trustworthy the supporting memory is, not just how
+          many items were found.
+        The total is capped at 0.8: this deterministic pipeline never claims
+        near-certainty, since Firekeeper still requires human confirmation.
+        """
+        baseline = 0.3 if state.observations else 0.0
+        if state.memories:
+            memory_component = sum(item["confidence"] for item in state.memories) / len(state.memories) * 0.5
+        else:
+            memory_component = 0.0
+        state.confidence = min(0.8, baseline + memory_component)
         for hypothesis in state.hypotheses:
             hypothesis["confidence"] = round(state.confidence, 2)
         if not state.memories:
@@ -97,16 +143,31 @@ class Orchestrator:
         state.record(CognitiveStage.CRITIQUE, {"critique": state.critique[:]})
 
     def _decide(self, state: CognitiveState) -> None:
-        if not state.observations:
-            state.decision = "Ask the user to provide a specific question or goal."
+        if state.language == "th":
+            if not state.observations:
+                state.decision = "ขอให้ผู้ใช้ระบุคำถามหรือเป้าหมายที่ชัดเจน"
+            else:
+                state.decision = "ทำความชัดเจนของผลลัพธ์ที่ต้องการ เปรียบเทียบทางเลือกที่มี แล้วให้ผู้ใช้เลือกขั้นตอนถัดไปเอง"
         else:
-            state.decision = "Clarify the desired outcome, compare available alternatives, and let the user choose the next action."
+            if not state.observations:
+                state.decision = "Ask the user to provide a specific question or goal."
+            else:
+                state.decision = "Clarify the desired outcome, compare available alternatives, and let the user choose the next action."
         state.record(CognitiveStage.DECISION, {"decision": state.decision, "confidence": state.confidence, "uncertainty": state.uncertainty[:]})
 
     def _communication_prompt(self, state: CognitiveState) -> str:
         return f"""You are the Communication stage of the PUNN Cognitive Architecture (PCA).\nRespond in the user's language. Help them think; do not make their decision for them.\nSeparate observations from assumptions, state uncertainty, and offer practical options.\n\nUser request: {state.user_input}\nPurpose: {state.purpose}\nDecision framework: {state.decision}\nConfidence: {state.confidence:.0%}\nUncertainty: {'; '.join(state.uncertainty)}\nCritique: {'; '.join(state.critique)}\n\nGive a concise, helpful response."""
 
     def _fallback_response(self, state: CognitiveState) -> str:
+        if state.language == "th":
+            return "\n".join([
+                f"ความเข้าใจ: {state.understanding}",
+                f"จุดประสงค์: {state.purpose}",
+                f"ข้อเสนอแนะ: {state.decision}",
+                f"ความมั่นใจ: {state.confidence:.0%}",
+                "ความไม่แน่นอน: " + "; ".join(state.uncertainty),
+                "อำนาจการตัดสินใจ: การตัดสินใจสุดท้ายยังคงเป็นของคุณ",
+            ])
         return "\n".join([
             f"Understanding: {state.understanding}",
             f"Purpose: {state.purpose}",

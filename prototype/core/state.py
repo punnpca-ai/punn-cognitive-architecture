@@ -12,6 +12,7 @@ class CognitiveState:
     """Inspectable state shared by every cognitive stage."""
 
     user_input: str
+    language: str = "en"
     purpose: str = ""
     response: str = ""
     notes: list[str] = field(default_factory=list)
