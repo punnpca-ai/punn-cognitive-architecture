@@ -1,4 +1,4 @@
-"""Executable PCA Cognitive DNA prototype with optional Ollama communication."""
+"""Executable PCA Cognitive DNA prototype with optional LLM communication."""
 
 import re
 
@@ -8,20 +8,13 @@ from .core.memory import MemoryEngine, MemoryItem, MemoryLayer
 from .core.purpose import PurposeEngine
 from .core.state import CognitiveState
 from .llm import BaseLLMAdapter, OllamaAdapter, OllamaUnavailable
-
+from .config import settings
 
 _THAI_SCRIPT = re.compile(r"[\u0E00-\u0E7F]")
 
-
 def _detect_language(text: str) -> str:
-    """Very small heuristic: Thai script present -> 'th', otherwise 'en'.
-
-    This only decides which deterministic template to use when the LLM path is
-    unavailable; when Ollama responds it already handles the user's language
-    directly via the prompt instruction.
-    """
+    """Very small heuristic: Thai script present -> 'th', otherwise 'en'."""
     return "th" if _THAI_SCRIPT.search(text) else "en"
-
 
 class Orchestrator:
     """Coordinates the invariant Cognitive DNA sequence without hidden reasoning."""
@@ -35,7 +28,25 @@ class Orchestrator:
         self.memory = memory or MemoryEngine()
         self.purpose_engine = PurposeEngine()
         self.firekeeper = Firekeeper()
-        self.llm = llm or OllamaAdapter()
+        
+        if llm is None:
+            provider = settings["llm"]["provider"]
+            model = settings["llm"]["model"]
+            temp = settings["llm"].get("temperature", 0.7)
+            
+            if provider == "ollama":
+                self.llm = OllamaAdapter(model=model, temperature=temp)
+            elif provider == "openai":
+                from .llm import OpenAIAdapter
+                self.llm = OpenAIAdapter(model=model, temperature=temp)
+            elif provider == "gemini":
+                from .llm import GeminiAdapter
+                self.llm = GeminiAdapter(model=model, temperature=temp)
+            else:
+                self.llm = OllamaAdapter(model=model, temperature=temp)
+        else:
+            self.llm = llm
+            
         self.use_llm = use_llm
 
     def start(self) -> None:
@@ -88,8 +99,6 @@ class Orchestrator:
         retrieved = self.memory.retrieve(state.user_input)
         state.memories = [item.as_dict() for item in retrieved]
         if state.observations:
-            # Committed after retrieval so this turn's own observation cannot
-            # self-match and inflate "relevant prior memory" for this same cycle.
             self.memory.remember(
                 MemoryItem(
                     content=state.observations[0],
@@ -113,17 +122,6 @@ class Orchestrator:
         state.record(CognitiveStage.HYPOTHESIS, {"hypotheses": state.hypotheses})
 
     def _evaluate_evidence(self, state: CognitiveState) -> None:
-        """Derive confidence from two grounded components instead of a flat guess.
-
-        - `baseline` (0.3): awarded only when there is a concrete user observation,
-          so an empty request can never be reported as evidenced.
-        - `memory_component` (up to +0.5): the average reliability (`confidence`) of
-          any retrieved prior memories that actually matched this request, so
-          confidence tracks how trustworthy the supporting memory is, not just how
-          many items were found.
-        The total is capped at 0.8: this deterministic pipeline never claims
-        near-certainty, since Firekeeper still requires human confirmation.
-        """
         baseline = 0.3 if state.observations else 0.0
         if state.memories:
             memory_component = sum(item["confidence"] for item in state.memories) / len(state.memories) * 0.5
