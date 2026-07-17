@@ -1,5 +1,25 @@
+PCA Cognitive DNA Configuration
+# This file controls the behavior of the prototype without changing code.
+
 llm:
+  # Provider options: ollama, openai, gemini
   provider: ollama
+  
+  # Model names depend on the provider:
+  # - Ollama: qwen3:4b, llama3, etc.
+  # - OpenAI: gpt-3.5-turbo, gpt-4
+  # - Gemini: gemini-pro
   model: qwen3:4b
+  
+  # Generation parameters
   temperature: 0.7
   max_tokens: 500
+
+# Future expansions (Placeholders)
+memory:
+  vector_search: false
+  embedding_model: all-MiniLM-L6-v2
+
+governance:
+  firekeeper_mode: strict
+  human_agency_required: true
