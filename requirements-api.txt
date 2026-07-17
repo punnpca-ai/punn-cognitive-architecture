@@ -4,3 +4,6 @@
 fastapi
 uvicorn
 pydantic
+openai
+google-generativeai
+pyyaml
