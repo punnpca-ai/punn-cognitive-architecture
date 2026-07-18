@@ -1,11 +1,13 @@
 """FastAPI endpoint for the PCA Cognitive DNA prototype."""
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, List, Dict, Optional
 from enum import Enum
 
 from .llm import BaseLLMAdapter, OllamaAdapter, OpenAIAdapter, GeminiAdapter, OllamaUnavailable
+
 from .config import APP_NAME, VERSION, settings
 from .orchestrator import Orchestrator
 
@@ -14,7 +16,7 @@ class LLMProvider(str, Enum):
     OPENAI = "openai"
     GEMINI = "gemini"
 
-# Global orchestrator instance (default to settings from config.yaml)
+# Global orchestrator instance (default to OllamaAdapter)
 def get_orchestrator(llm_provider: Optional[LLMProvider] = None, llm_model: Optional[str] = None) -> Orchestrator:
     # Use settings from config.yaml if not provided in request
     llm_provider = llm_provider or LLMProvider(settings["llm"]["provider"])
@@ -41,6 +43,18 @@ app = FastAPI(
     description="API for PCA Cognitive DNA prototype"
 )
 
+# Add CORS middleware to allow Web UI requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize Orchestrator once for the app lifecycle
+
+
 class AnalyzeRequest(BaseModel):
     llm_provider: Optional[LLMProvider] = None
     llm_model: Optional[str] = None
@@ -59,6 +73,8 @@ def analyze(request: AnalyzeRequest):
     
     try:
         # Re-initialize orchestrator with selected LLM provider/model for each request
+        # This allows dynamic switching of LLM adapters per request.
+        # For performance, consider caching orchestrator instances if LLM parameters are static.
         current_orchestrator = get_orchestrator(request.llm_provider, request.llm_model)
         state = current_orchestrator.think(request.question)
         return AnalyzeResponse(
