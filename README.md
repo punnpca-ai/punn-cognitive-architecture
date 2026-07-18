@@ -1,108 +1,240 @@
-# PUNN Cognitive Architecture (PCA)
+# PCA – Punn Cognitive Architecture
 
-> **A Constitution-Centered Cognitive Architecture for Human-Centered Intelligence**
+> **Helping Local LLMs think before they answer.**
 
-PUNN Cognitive Architecture (PCA) is an open cognitive architecture that provides an implementation-independent framework for building trustworthy intelligent systems.
+PCA (Punn Cognitive Architecture) is a governance-oriented cognitive architecture that enhances Local Large Language Models by introducing a structured cognitive reasoning process before response generation.
 
-Unlike model-specific AI frameworks, PCA defines how intelligence should reason, learn, communicate, collaborate, and evolve while preserving **Human Agency** through constitutional governance.
-
----
-
-## Vision
-
-PCA aims to establish an open architectural standard for cognitive systems that are:
-
-- Human-Centered
-- Constitution-Governed
-- Evidence-Guided
-- Explainable
-- Continuously Learning
-- Implementation Independent
+Rather than asking an LLM to answer immediately, PCA guides the model through a sequence of cognitive stages designed to improve reasoning quality, consistency, explainability, and decision support.
 
 ---
 
-## Core Principles
+# Why PCA?
 
-- Purpose Before Response
-- Understanding Before Generation
-- Reality Before Assumption
-- Evidence Before Confidence
-- Transparency Before Persuasion
-- Human Agency Above Automation
-- Deliberation Before Commitment
-- Continuous Learning
-- Responsible Creativity
-- Constructive Criticism
-- Architectural Integrity
-- Responsible Evolution
+Local LLMs are becoming increasingly capable, but they still commonly produce responses that are:
+
+- Inconsistent
+- Too brief
+- Weakly reasoned
+- Mixed-language outputs
+- Poorly structured
+- Difficult to explain
+
+PCA addresses these limitations by acting as a **Cognitive Layer** above the language model.
+
+Instead of replacing an LLM, PCA organizes how the model thinks before it communicates.
 
 ---
 
-# Repository Structure
+# What PCA Does
+
+Without PCA, an LLM typically responds directly:
 
 ```text
-specification/
-    Part_I_Foundations/
-    Part_II_Cognitive_Core/
-    Part_III_Cognitive_Systems/
-    Part_IV_Governance/
-    Part_V_Evolution/
-
-prototype/
-sdk/
-docs/
-examples/
-benchmarks/
+Question
+    │
+ Local LLM
+    │
+ Response
 ```
+
+With PCA:
+
+```text
+Question
+    │
+Observation
+    │
+Understanding
+    │
+Purpose
+    │
+Memory
+    │
+Mental Model
+    │
+Hypothesis
+    │
+Evidence Evaluation
+    │
+Critique
+    │
+Decision
+    │
+Communication
+    │
+Reflection
+    │
+Learning
+    │
+ Local LLM
+    │
+ Structured Response
+```
+
+The goal is simple:
+
+> **Structure reasoning before generating language.**
 
 ---
 
-# Documentation
+# Example
 
-| Document | Description |
-|----------|-------------|
-| CHARTER.md | Vision and mission |
-| CONSTITUTION.md | Constitutional principles |
-| specification/ | PCA Specification v1.0 |
-| docs/ | Supporting documentation |
-| prototype/ | Reference implementation |
+## Without PCA
+
+**Question**
+
+> Will AI replace all programmers within 10 years?
+
+**Typical Response**
+
+> AI may replace some programmers but probably not all. It depends on technological progress and market demand.
+
+---
+
+## With PCA
+
+**Facts**
+
+- AI already assists software development.
+- Programming involves more than code generation.
+
+**Assumptions**
+
+- AI capability will continue improving rapidly.
+- Organizations will widely adopt AI.
+
+**Evidence**
+
+- AI coding assistants improve productivity.
+- Complex system design still requires human expertise.
+
+**Counterarguments**
+
+- AI may automate routine programming.
+- Creative problem solving remains difficult to automate.
+
+**Decision Support**
+
+The claim cannot currently be confirmed or rejected with certainty.
+The future depends on technological, economic, and social factors.
+
+---
+
+# Core Principles
+
+PCA is built around three ideas:
+
+## 1. Structured Reasoning
+
+Reasoning should follow an explicit cognitive process rather than relying on a single prompt.
+
+## 2. Governance
+
+AI should support human judgment—not replace it.
+
+PCA emphasizes transparency, uncertainty, evidence, and responsible decision support.
+
+## 3. Explainability
+
+Every response can be traced through the cognitive pipeline.
+
+---
+
+# Cognitive DNA
+
+Current Cognitive DNA consists of twelve stages:
+
+1. Observation
+2. Understanding
+3. Purpose
+4. Memory
+5. Mental Model
+6. Hypothesis
+7. Evidence Evaluation
+8. Critique
+9. Decision
+10. Communication
+11. Reflection
+12. Learning
+
+These stages separate reasoning into manageable cognitive functions before generating the final response.
+
+---
+
+# Features
+
+- Cognitive DNA pipeline
+- Governance-oriented reasoning
+- Explainable reasoning trace
+- Structured decision support
+- Local LLM compatible
+- Ollama integration
+- FastAPI backend
+- React frontend
+- Modular architecture
+
+---
+
+# Architecture
+
+```text
+                User
+                  │
+                  ▼
+        Punn Cognitive Architecture
+                  │
+        Cognitive DNA Pipeline
+                  │
+      Governance & Decision Layer
+                  │
+             Local LLM
+                  │
+                  ▼
+      Structured AI Response
+```
 
 ---
 
 # Current Status
 
-Current Version
+Prototype Version
 
-**PCA Specification v1.0 (Draft)**
+Current capabilities:
 
-Status
+- Cognitive reasoning pipeline
+- Governance engine
+- Decision support
+- Response trace visualization
+- FastAPI API
+- React Web UI
+- Ollama integration
 
-🚧 Under Active Development
+In Progress:
+
+- Long-term Memory
+- Adaptive Mental Models
+- Evaluation Suite
+- External Evidence Engine
+- RAG Integration
+- Plugin System
 
 ---
 
-# Design Goals
+# Philosophy
 
-PCA is designed to support:
+LLMs generate language.
 
-- Personal AI
-- Enterprise AI
-- Multi-Agent Systems
-- Organizational Intelligence
-- Research Platforms
-- Cognitive Assistants
+PCA structures reasoning.
 
 ---
 
-# Roadmap
+# Vision
 
-- ✅ Architecture Charter
-- ✅ Constitution
-- ✅ PCA Specification v1.0
-- ⏳ Reference Implementation
-- ⏳ SDK
-- ⏳ Benchmarks
-- ⏳ Compliance Certification
+PCA is **not another Large Language Model.**
+
+It is a cognitive architecture designed to enhance existing language models by improving the way they reason before generating responses.
+
+The long-term vision is to provide an open, modular cognitive layer that can operate with multiple Local LLMs while remaining transparent, explainable, and governance-oriented.
 
 ---
 
@@ -110,26 +242,28 @@ PCA is designed to support:
 
 Contributions are welcome.
 
-Please read **CONTRIBUTING.md** before submitting issues or pull requests.
+Whether you are interested in:
+
+- AI Research
+- Cognitive Architecture
+- Local LLMs
+- Backend Development
+- Frontend Development
+- Evaluation Frameworks
+- Documentation
+
+your contributions can help improve PCA.
+
+Please open an Issue or Pull Request to get started.
 
 ---
 
 # License
 
-License: TBD
+This project is released under the MIT License.
 
 ---
 
-# Citation
+# Project Motto
 
-If you use PCA in research, please cite the project using **CITATION.cff**.
-
----
-
-# Philosophy
-
-> Technology should expand human capability.
->
-> Understanding should guide technology.
->
-> Human Agency should remain the final authority.
+> **Helping Local LLMs think before they answer.**
